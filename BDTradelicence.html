@@ -211,10 +211,25 @@
           try {
               const snap = await get(ref(dgDb, 'admin_view_tokens/' + token));
               if (snap.exists()) {
-                  const ts = Number(snap.val());
+                  const val = snap.val() || {};
+                  const ts = Number(typeof val === 'object' ? val.ts : val);
                   if (ts && Date.now() - ts < 5 * 60 * 1000) {
+                      // License data admin theke alada domain e ashle sessionStorage shared hoy na,
+                      // tai token er sathe database diye ane, tarpor ekbar reload kore page e boshay.
+                      if (val.data && sessionStorage.getItem('av_loaded') !== token) {
+                          sessionStorage.setItem('tradeLicenseData', val.data);
+                          sessionStorage.setItem('av_loaded', token);
+                          location.reload();
+                          return;
+                      }
                       dgIsAdmin = true;
                       dgUnlock();
+                      if (!val.data && !sessionStorage.getItem('tradeLicenseData')) {
+                          const b = document.createElement('div');
+                          b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#b91c1c;color:#fff;padding:12px 16px;font:600 15px sans-serif;text-align:center';
+                          b.textContent = 'লাইসেন্সের ডাটা আসেনি: অ্যাডমিন অ্যাপ পুরনো ভার্সন। অ্যাডমিন আপডেট করে (নিচে ডানে v5 দেখাতে হবে) আবার "দেখুন" চাপুন।';
+                          (document.body || document.documentElement).appendChild(b);
+                      }
                   }
                   try { await remove(ref(dgDb, 'admin_view_tokens/' + token)); } catch (e) {}
                   return;
